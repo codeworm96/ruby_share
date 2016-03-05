@@ -1,0 +1,273 @@
+\documentclass[11pt]{beamer}
+\usetheme{Luebeck}
+\usecolortheme{beaver}
+
+\usepackage{minted}
+\usepackage{graphicx}
+
+\begin{document}
+\title{Ruby Metaprogramming}
+\author{Zhang Yuning}
+\date{\today}
+\begin{frame}
+\titlepage
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Hello, world!}
+\begin{minted}[linenos=true]{ruby}
+# myapp.rb
+require 'sinatra'
+
+get '/' do
+  'Hello world!'
+end
+\end{minted}
+\end{frame}
+
+\begin{frame}
+\frametitle{Ruby's Feature}
+\begin{itemize}
+\item Completely object-oriented
+\item Blocks
+\item Metaprograming
+\item Dynamic typing
+\item Garbage collection
+\item Rails Girls
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Ruby Basics}
+In ruby there is only expressions:
+\begin{minted}[linenos=true]{ruby}
+winston = if 2 + 2 == 5
+            'Ignorance is strength'
+          else
+            'Freedom'
+          end # => 'Freedom'
+winston # => 'Freedom'
+\end{minted}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Ruby Basics}
+Symbols, like in Lisp:
+\begin{minted}{ruby}
+  :symbol
+\end{minted}
+Used mainly in metaprogramming methods
+\begin{minted}{ruby}
+  attr_reader :length
+\end{minted}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Ruby Basics - Naming convention}
+predicates' name should end with ?
+\begin{minted}{ruby}
+  block_given?
+  empty?
+\end{minted}
+`impure' methods' name should end with !
+\begin{minted}{ruby}
+  reverse!
+  reverse
+\end{minted}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Ruby Basics}
+Blocks are a important feature of Ruby:
+\begin{minted}[linenos=true]{ruby}
+[1, 2, 3].each do |x|
+  puts x
+end
+\end{minted}
+We will meet it often.
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Ruby Basics}
+every method can be given a block and call it with yield
+\begin{minted}[linenos=true]{ruby}
+def call_with_42
+  if block_given?
+    yield 42
+  end
+end
+call_with_42 {|x| puts x}
+\end{minted}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Everything is object}
+Fixnum is object:
+\begin{minted}{ruby}
+3.times do
+  puts 'quark'
+end
+# even
+3.days.ago
+\end{minted}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Everything is object}
+nil is also object:
+\begin{minted}[linenos=true]{ruby}
+# Note that built-in Classes can be modified
+class Object
+  def try
+    if block_given?
+      yield self
+    end
+  end
+end
+
+class NilClass
+  def try
+    nil
+  end
+end
+\end{minted}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Everything is object}
+Usage:
+\begin{minted}{ruby}
+nil.try{|x| x + 1} # => nil
+2.try{|x| x + 1} # => 3
+\end{minted}
+\begin{minted}{haskell}
+Nothing >>= (\x -> Just (x + 1)) # => Nothing
+Just 2 >>= (\x -> Just (x + 1)) # => Just 3
+\end{minted}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Everything is object}
+Classes are objects, too!
+\begin{minted}[linenos=true]{ruby}
+class A
+end
+A.class # => Class
+Class.class # => Class
+\end{minted}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Everything is object}
+From a linguist's point of view, Blocks are not objects.
+But there are three ways to convert them to objects.
+(Note: there are subtle differences between each other)
+\begin{minted}{ruby}
+Proc.new {|x| x + 1}
+lambda {|x| x + 1}
+-> x { x + 1 } # introduce in ruby 1.9
+\end{minted}
+\begin{minted}{ruby}
+p = Proc.new {|x| x + 1}
+p.(1)
+p[1]
+p.call 1
+\end{minted}
+Note that object is first-class. So...
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Duck Typing}
+\begin{quotation}
+But there`s an old American phrase about if it walks like a duck and quacks like a duck and so 
+forth, it`s a duck.
+\rightline{--- Mike Wallace}
+\end{quotation}
+\begin{minted}[linenos=true]{ruby}
+# taken from Sinatra (modified)
+if boom.respond_to? :http_status
+  status(boom.http_status)
+elsif boom.respond_to?:code and boom.code.between? 400,599
+  status(boom.code)
+else
+  status(500)
+end
+\end{minted}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Singleton Method}
+\begin{minted}[linenos=true]{ruby}
+class A
+  def hello
+    'hello'
+  end
+end
+a1 = A.new
+a2 = A.new
+def a1.bye
+  'bye'
+end
+a1.hello # => 'hello'
+a1.bye # => 'bye'
+a2.hello # => 'hello'
+a2.respond_to? :bye # => false
+\end{minted}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Method Lookup}
+\begin{figure}[htbp]
+    \includegraphics[scale=0.4]{method_lookup.png}
+\end{figure}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Class definition}
+Class definition in Ruby just changes the environment.
+You can invoke method in them.
+\begin{minted}{ruby}
+class A
+  puts 'hello, world'
+end
+\end{minted}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{define\_method \& method\_missing}
+    The html example.
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Hooks}
+\begin{minted}[linenos=true, breaklines=true]{ruby}
+at_exit { Application.run! if $!.nil? && Application.run? }
+
+class Base
+  def inherited(subclass)
+    subclass.reset!
+    subclass.set :app_file, caller_files.first unless subclass.app_file?
+  end
+end
+\end{minted}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Wrap up - The logger decorator}
+\begin{minted}[linenos=true]{ruby}
+class A
+  include Logger
+
+  def f
+    puts 'hello, world!'
+  end
+
+  add_logger :f
+end
+# output:
+# f started
+# hello, world!
+# f finished
+\end{minted}
+\end{frame}
+\end{document}
